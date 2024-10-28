@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login/Register | Bonnie Computer Hub</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">
+        <a href="#">BONNIE COMPUTER HUB - BCH</a>
+      </div>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="courses.html">Courses</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <section class="auth-section">
+    <div class="container">
+      <div class="auth-container">
+        <div class="auth-toggle">
+          <button id="login-btn" class="active">Login</button>
+          <button id="register-btn">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form" class="auth-form active">
+          <h2>Login to Your Account</h2>
+          <form action="login.php" method="POST">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit" class="cta-btn">Login</button>
+            <p>Forgot password? <a href="#">Reset here</a></p>
+          </form>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form" class="auth-form">
+          <h2>Create a New Account</h2>
+          <form action="register.php" method="POST">
+            <label for="name">Full Name:</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <label for="confirm-password">Confirm Password:</label>
+            <input type="password" id="confirm-password" name="confirm-password" required>
+
+            <button type="submit" class="cta-btn">Register</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 Bonnie Computer Hub. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // JavaScript to toggle between login and register forms
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+
+    loginBtn.addEventListener('click', () => {
+      loginForm.classList.add('active');
+      registerForm.classList.remove('active');
+      loginBtn.classList.add('active');
+      registerBtn.classList.remove('active');
+    });
+
+    registerBtn.addEventListener('click', () => {
+      registerForm.classList.add('active');
+      loginForm.classList.remove('active');
+      registerBtn.classList.add('active');
+      loginBtn.classList.remove('active');
+    });
+  </script>
+</body>
+</html>
