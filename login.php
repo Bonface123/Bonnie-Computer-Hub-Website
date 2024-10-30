@@ -22,8 +22,11 @@ if (isset($_POST['login'])) {
             $_SESSION['loggedin'] = true;
             $_SESSION['user_id'] = $student['id'];
             $_SESSION['name'] = $student['name'];
+            $_SESSION['email'] = $student['email'];
             $_SESSION['role'] = 'student';
             header("Location: student_dashboard.php");
+            $_SESSION['id'] = $user['id']; // Assuming $user['id'] is fetched from the database after login
+
             exit;
         } else {
             $message = "Incorrect password.";

@@ -9,7 +9,7 @@ if (!isset($_SESSION['loggedin'])) {
 // Get student details from session or database
 $studentName = $_SESSION['name']; // Example from session
 $studentEmail = $_SESSION['email']; // Example email from session
-$profile_picture = isset($_SESSION['profile_picture']) ? $_SESSION['profile_picture'] : 'uploads/default_profile.png';
+$profile_picture = isset($_SESSION['profile_picture']) ? $_SESSION['profile_picture'] : 'uploads/default_profile1.png';
 
 $studentCourses = [
     ['course_name' => 'Full Stack Web Development', 'progress' => '75%', 'certificate' => 'certificate-web-dev.pdf'],
@@ -150,12 +150,13 @@ $assessments = [
             <p><strong>Name:</strong> <?php echo htmlspecialchars($studentName); ?></p>
             <p><strong>Email:</strong> <?php echo htmlspecialchars($studentEmail); ?></p>
 
-            <!-- Display Profile Picture -->
-            <?php if (!empty($profile_picture)): ?>
-                <img src="<?php echo htmlspecialchars($profile_picture); ?>" alt="Profile Picture" style="width: 100px; height: 100px; border-radius: 50%;">
-            <?php else: ?>
-                <img src="uploads/default_profile.png" alt="Default Profile Picture" style="width: 100px; height: 100px; border-radius: 50%;">
-            <?php endif; ?>
+            <!-- Display Profile Picture with Cache Buster -->
+<?php if (!empty($profile_picture)): ?>
+    <img src="<?php echo htmlspecialchars($profile_picture) . '?t=' . time(); ?>" alt="Profile Picture" style="width: 100px; height: 100px; border-radius: 50%;">
+<?php else: ?>
+    <img src="uploads/default_profile.png" alt="Default Profile Picture" style="width: 100px; height: 100px; border-radius: 50%;">
+<?php endif; ?>
+
 
             <p><a href="update_profile.php" class="download-link">Update Profile</a></p>
         </div>
