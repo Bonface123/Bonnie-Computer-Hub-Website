@@ -14,29 +14,46 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Initialize error message variable
+$error_message = '';
+
 // Check if the form data is set
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name = $conn->real_escape_string($_POST['name']);
-    $email = $conn->real_escape_string($_POST['email']);
-    $course = $conn->real_escape_string($_POST['course']); // Assuming course is coursename
-    $payment_method = $conn->real_escape_string($_POST['payment-method']);
+    // Sanitize and prepare input data
+    $name = $conn->real_escape_string(trim($_POST['name']));
+    $email = $conn->real_escape_string(trim($_POST['email']));
+    $course = $conn->real_escape_string(trim($_POST['course']));
+    $payment_method = $conn->real_escape_string(trim($_POST['payment-method']));
 
-    // Assuming you have a description, start_date, and end_date. You can set them as needed.
-    $description = ''; // Placeholder, adjust based on your requirements
-    $start_date = date('Y-m-d'); // Example: current date, modify as needed
-    $end_date = date('Y-m-d', strtotime('+1 month')); // Example: one month later, modify as needed
-    $teacher_id = 1; // Example: fixed teacher ID, modify as needed or retrieve from another source
+    // Step 1: Insert user into the users table
+    $sql_user = "INSERT INTO users (name, email, role) VALUES ('$name', '$email', 'student')";
+    
+    if ($conn->query($sql_user) === TRUE) {
+        $user_id = $conn->insert_id; // Get the last inserted user ID
 
-    // SQL insert statement
-    $sql = "INSERT INTO courses (course_name, description, start_date, end_date, teacher_id) 
-            VALUES ('$course', '$description', '$start_date', '$end_date', '$teacher_id')";
-
-    if ($conn->query($sql) === TRUE) {
-        // Redirect to confirmation page after successful enrollment
-        header("Location: confirmation.html");
-        exit();
+        // Step 2: Insert course enrollment into enrollments table
+        $sql_course = "INSERT INTO enrollments (student_id, course_id, enrollment_date) 
+                       VALUES ('$user_id', (SELECT id FROM courses WHERE course_name='$course'), CURRENT_DATE)";
+        
+        if ($conn->query($sql_course) === TRUE) {
+            // Redirect to confirmation page after successful enrollment
+            header("Location: confirmation.html");
+            exit();
+        } else {
+            $error_message = "Error enrolling in course: " . $conn->error;
+        }
     } else {
-        $error_message = "Error: " . $sql . "<br>" . $conn->error;
+        $error_message = "Error creating user: " . $conn->error;
+    }
+}
+
+// Fetch courses for the dropdown
+$courses = [];
+$sql_courses = "SELECT course_name FROM courses";
+$result_courses = $conn->query($sql_courses);
+if ($result_courses->num_rows > 0) {
+    while ($row = $result_courses->fetch_assoc()) {
+        $courses[] = $row['course_name'];
     }
 }
 
@@ -54,15 +71,15 @@ $conn->close();
 <body>
     <header>
         <nav class="container">
-          <div class="logo">
-            <a href="index.html">BONNIE COMPUTER HUB - BCH</a>
-          </div>
-          <ul class="nav-links">
-            <li><a href="course-details.php">Home</a></li>
-            <li><a href="courses.html" class="active">Courses</a></li>
-            <li><a href="#contact">Contact</a></li>
-          </ul>
-          <a href="enroll.html" class="cta-btn" aria-label="Enroll Now">Enroll Now</a>
+            <div class="logo">
+                <a href="index.html">BONNIE COMPUTER HUB - BCH</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="course-details.php">Home</a></li>
+                <li><a href="courses.html" class="active">Courses</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <a href="enroll.html" class="cta-btn" aria-label="Enroll Now">Enroll Now</a>
         </nav>
     </header>
 
@@ -70,7 +87,7 @@ $conn->close();
         <div class="container">
             <h2>Enroll in Course</h2>
             <p>Please fill in the details below to enroll in the course.</p>
-            <?php if (isset($error_message)): ?>
+            <?php if (!empty($error_message)): ?>
                 <div class="error"><?php echo $error_message; ?></div>
             <?php endif; ?>
             <form id="enrollment-form" method="POST">
@@ -85,15 +102,16 @@ $conn->close();
                 <div class="form-group">
                     <label for="course">Select Course:</label>
                     <select id="course" name="course" required>
-                        <option value="HTML Basics">HTML Basics</option>
-                        <option value="CSS Fundamentals">CSS Fundamentals</option>
-                        <option value="JavaScript Essentials">JavaScript Essentials</option>
+                        <option value="">-- Select a Course --</option>
+                        <?php foreach ($courses as $course_name): ?>
+                            <option value="<?php echo $course_name; ?>"><?php echo $course_name; ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="payment-method">Payment Method:</label>
                     <select id="payment-method" name="payment-method" required>
-                        <option value="credit-card">Credit Card</option>
+                        <option value="credit-card">M-Pesa</option>
                         <option value="paypal">PayPal</option>
                         <option value="bank-transfer">Bank Transfer</option>
                     </select>

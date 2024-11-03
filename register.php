@@ -1,47 +1,34 @@
 <?php
-// Include database connection
-require 'db.php';
+// register.php
+$host = 'localhost'; // Your database host
+$db = 'student_portal'; // Your database name
+$user = 'root'; // Your database username
+$pass = ''; // Your database password
 
-// Initialize variables for error/success messages
-$error = '';
-$success = '';
+$conn = new mysqli($host, $user, $pass, $db);
 
-// Check if the form is submitted
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get form inputs
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm-password'];
+    $name = $conn->real_escape_string($_POST['name']);
+    $email = $conn->real_escape_string($_POST['email']);
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT); // Hash password
 
-    // Validate form inputs
-    if (empty($name) || empty($email) || empty($password) || empty($confirm_password)) {
-        $error = 'Please fill in all the fields.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Invalid email format.';
-    } elseif ($password !== $confirm_password) {
-        $error = 'Passwords do not match.';
+    $sql = "INSERT INTO users (name, email, password) VALUES ('$name', '$email', '$password')";
+
+    if ($conn->query($sql) === TRUE) {
+        // Redirect to login page after successful registration
+        header("Location: login2.php");
+        exit();
     } else {
-        // Check if email is already registered
-        $query = $db->prepare('SELECT id FROM users WHERE email = ?');
-        $query->execute([$email]);
-
-        if ($query->rowCount() > 0) {
-            $error = 'Email is already registered.';
-        } else {
-            // Hash the password
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-            // Insert new user into the database
-            $query = $db->prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)');
-            if ($query->execute([$name, $email, $hashed_password])) {
-                $success = 'Registration successful! You can now <a href="login.php">log in</a>.';
-            } else {
-                $error = 'Registration failed. Please try again.';
-            }
-        }
+        $error_message = "Error: " . $sql . "<br>" . $conn->error;
     }
 }
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -49,31 +36,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Register | Bonnie Computer Hub</title>
 </head>
 <body>
     <h2>Register</h2>
-    <?php if ($error): ?>
-        <p style="color: red;"><?php echo $error; ?></p>
+    <?php if (isset($error_message)): ?>
+        <div class="error"><?php echo $error_message; ?></div>
     <?php endif; ?>
-    <?php if ($success): ?>
-        <p style="color: green;"><?php echo $success; ?></p>
-    <?php endif; ?>
-
-    <form action="register.php" method="POST">
-        <label for="name">Full Name:</label>
-        <input type="text" id="name" name="name" required>
-
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-
-        <label for="confirm-password">Confirm Password:</label>
-        <input type="password" id="confirm-password" name="confirm-password" required>
-
+    <form method="POST">
+        <input type="text" name="name" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Register</button>
     </form>
+    <p>Already have an account? <a href="login.php">Login here</a>.</p>
 </body>
 </html>

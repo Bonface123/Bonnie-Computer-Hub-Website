@@ -4,12 +4,13 @@ CREATE DATABASE student_portal;
 -- Use the database
 USE student_portal;
 
--- Create the students table
-CREATE TABLE students (
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE
+    name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    password VARCHAR(255),
+    role ENUM('student', 'teacher'),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -27,7 +28,7 @@ CREATE TABLE enrollments (
     student_id INT NOT NULL,
     course_id INT NOT NULL,
     enrollment_date DATE DEFAULT CURRENT_DATE,
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 
@@ -116,3 +117,16 @@ CREATE TABLE analytics (
 );
 
 
+ALTER TABLE assignments
+ADD COLUMN teacher_id INT NOT NULL; -- Adjust the data type as needed
+
+ALTER TABLE assignments
+ADD COLUMN submitted_on DATETIME DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE users
+ADD COLUMN phone VARCHAR(15) AFTER email;
+
+ALTER TABLE users
+ADD COLUMN address VARCHAR(255) AFTER phone;
+
+ALTER TABLE quizzes ADD COLUMN teacher_id INT NOT NULL;

@@ -1,40 +1,81 @@
 <?php
-// Ensure the user is logged in. If not, redirect to login page.
 session_start();
+require 'db.php'; // Database connection file
+
+// Check if the user is logged in
 if (!isset($_SESSION['loggedin'])) {
-    header('Location: login.php');
+    header('Location: teacher_login.php');
     exit;
 }
 
-// Get student details from session or database
-$studentName = $_SESSION['name']; // Example from session
-$studentEmail = $_SESSION['email']; // Example email from session
-$profile_picture = isset($_SESSION['profile_picture']) ? $_SESSION['profile_picture'] : 'uploads/default_profile1.png';
+// Get student details from the session
+$studentId = $_SESSION['id'];
+$studentName = $_SESSION['name'];
+$studentEmail = $_SESSION['email'];
 
-$studentCourses = [
-    ['course_name' => 'Full Stack Web Development', 'progress' => '75%', 'certificate' => 'certificate-web-dev.pdf'],
-    ['course_name' => 'Python for Data Science', 'progress' => '40%', 'certificate' => null],
-];
+// Fetch the updated profile picture path directly from the database
+$sql = "SELECT profile_picture FROM users WHERE id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $studentId);
+$stmt->execute();
+$stmt->bind_result($profile_picture);
+$stmt->fetch();
+$stmt->close();
 
-$upcomingAssignments = [
-    ['title' => 'Build a Portfolio Website', 'due_date' => '2024-10-31'],
-    ['title' => 'Python Data Analysis Project', 'due_date' => '2024-11-05'],
-];
+// Set a default profile picture if none is uploaded
+if (empty($profile_picture)) {
+    $profile_picture = 'uploads/default_profile.png';
+}
 
-$messagesFromInstructors = [
-    ['message' => 'Don’t forget to submit your web development project by the end of this month.', 'date' => '2024-10-24'],
-    ['message' => 'Join the Python Q&A session tomorrow at 10 AM.', 'date' => '2024-10-23'],
-];
+// Function to fetch enrolled courses
+function getEnrolledCourses($conn, $studentId) {
+    $sql = "
+        SELECT c.id AS course_id, c.course_name, description, e.progress
+        FROM enrollments e
+        JOIN courses c ON e.course_id = c.id
+        WHERE e.student_id = ?
+    ";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $studentId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
 
-$courseMaterials = [
-    ['course_name' => 'Full Stack Web Development', 'syllabus' => 'web-development-syllabus.pdf', 'materials' => ['HTML Basics.pdf', 'CSS Fundamentals.pdf', 'JavaScript Essentials.pdf']],
-    ['course_name' => 'Python for Data Science', 'syllabus' => 'python-data-science-syllabus.pdf', 'materials' => ['Python Basics.pdf', 'Pandas Tutorial.pdf']],
-];
+// Function to fetch available courses
+function getAvailableCourses($conn, $studentId) {
+    $sql = "
+        SELECT id, course_name 
+        FROM courses 
+        WHERE id NOT IN (SELECT course_id FROM enrollments WHERE student_id = ?)
+    ";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $studentId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
 
-$assessments = [
-    ['course_name' => 'Full Stack Web Development', 'quiz_title' => 'HTML & CSS Quiz', 'status' => 'Completed'],
-    ['course_name' => 'Python for Data Science', 'quiz_title' => 'Intro to Python Quiz', 'status' => 'Pending'],
-];
+// Function to enroll in a course
+function enrollInCourse($conn, $studentId, $courseId) {
+    $sql = "INSERT INTO enrollments (student_id, course_id, progress) VALUES (?, ?, '0%')";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $studentId, $courseId);
+    return $stmt->execute();
+}
+
+// Handle course enrollment
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enroll'])) {
+    $course_id_to_enroll = (int)$_POST['course_id'];
+    if (enrollInCourse($conn, $studentId, $course_id_to_enroll)) {
+        header('Location: student_dashboard.php'); // Redirect to see updated courses
+        exit;
+    } else {
+        $enrollmentError = "Enrollment failed. Please try again.";
+    }
+}
+
+// Fetch current data
+$studentCourses = getEnrolledCourses($conn, $studentId);
+$availableCourses = getAvailableCourses($conn, $studentId);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,88 +85,165 @@ $assessments = [
     <title>Student Dashboard | Bonnie Computer Hub</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 1200px;
-            margin: auto;
-            padding: 20px;
-        }
-        header {
-            background: #000;
-            color: white;
-            padding: 15px 0;
-            text-align: center;
-        }
-        header h1 {
-            margin: 0;
-        }
-        nav {
-            margin-top: 15px;
-            text-align: right;
-        }
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin: 0 15px;
-        }
-        .dashboard {
-            margin-top: 50px;
-        }
-        .dashboard h2 {
-            color: #007bff;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        .courses, .assignments, .messages, .materials, .assessments, .profile, .certificates {
-            margin-bottom: 50px;
-        }
-        .course-card, .assignment-card, .message-card, .material-card, .assessment-card, .certificate-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        .course-card h3, .assignment-card h3, .message-card h3, .material-card h3, .assessment-card h3, .certificate-card h3 {
-            color: goldenrod;
-            font-size: 20px;
-        }
-        .progress-bar {
-            height: 10px;
-            background: #f4f4f4;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .progress-bar span {
-            display: block;
-            height: 100%;
-            background-color: #007bff;
-        }
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 10px 0;
-            background-color: #000;
-            color: white;
-        }
-        .download-link {
-            color: #007bff;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .download-link:hover {
-            text-decoration: underline;
+        /* Reset some default styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background-color: #0056b3;
+    color: white;
+    padding: 10px 0;
+}
+
+header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.logo a {
+    color: white;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.nav-links {
+    list-style: none;
+}
+
+.nav-links li {
+    display: inline;
+    margin-left: 20px;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+}
+
+.nav-links a.active {
+    text-decoration: underline;
+}
+
+h1 {
+    color: #ffa500;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile, .courses, .enrollment, .assessments, .assignments, .messages, .materials {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    width: 100%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.course-card {
+    background-color: #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    background-color: #ddd;
+    border-radius: 5px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.progress-bar span {
+    display: block;
+    height: 100%;
+    background-color: #5cb85c; /* Green color for progress */
+}
+
+.download-link {
+    color: #0056b3;
+    text-decoration: none;
+}
+
+.download-link:hover {
+    text-decoration: underline;
+}
+
+button {
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #004494;
+}
+
+footer {
+    text-align: center;
+    padding: 15px 0;
+    background-color: #0056b3;
+    color: white;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        flex-direction: column;
+    }
+
+    .nav-links li {
+        display: block;
+        margin: 10px 0;
+    }
+}
+    </style>
+    <style>
+        .profile-picture {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
         }
     </style>
 </head>
 <body>
 
 <header>
-    
     <nav class="container">
         <div class="logo">
             <a href="index.html">BONNIE COMPUTER HUB - BCH</a>
@@ -140,111 +258,73 @@ $assessments = [
 </header>
 <h1 style="color: #ffa500; text-align: center;">Welcome to Your Dashboard, <?php echo htmlspecialchars($studentName); ?>!</h1>
 
-<!-- Dashboard Section -->
 <section class="dashboard">
     <div class="container">
-
-       <!-- Student Profile -->
         <div class="profile">
-            <h2>Student Profile</h2>
+            <h2>Your Profile</h2>
             <p><strong>Name:</strong> <?php echo htmlspecialchars($studentName); ?></p>
             <p><strong>Email:</strong> <?php echo htmlspecialchars($studentEmail); ?></p>
-
-            <!-- Display Profile Picture with Cache Buster -->
-<?php if (!empty($profile_picture)): ?>
-    <img src="<?php echo htmlspecialchars($profile_picture) . '?t=' . time(); ?>" alt="Profile Picture" style="width: 100px; height: 100px; border-radius: 50%;">
-<?php else: ?>
-    <img src="uploads/default_profile.png" alt="Default Profile Picture" style="width: 100px; height: 100px; border-radius: 50%;">
-<?php endif; ?>
-
-
+            <img src="<?php echo htmlspecialchars($profile_picture); ?>" alt="Profile Picture" class="profile-picture">
             <p><a href="update_profile.php" class="download-link">Update Profile</a></p>
         </div>
-
-        <!-- Courses Section -->
+        
         <div class="courses">
             <h2>Your Courses</h2>
-            <?php foreach ($studentCourses as $course): ?>
-                <div class="course-card">
-                    <h3><?php echo $course['course_name']; ?></h3>
-                    <p>Progress: <?php echo $course['progress']; ?></p>
-                    <div class="progress-bar">
-                        <span style="width: <?php echo $course['progress']; ?>;"></span>
+            <?php if (!empty($studentCourses)): ?>
+                <?php foreach ($studentCourses as $course): ?>
+                    <div class="course-card">
+                        <h3><?php echo htmlspecialchars($course['course_name']); ?></h3>
+                        <p>Progress: <?php echo htmlspecialchars($course['progress']); ?></p>
+                        <div class="progress-bar">
+                            <span style="width: <?php echo htmlspecialchars($course['progress']); ?>;"></span>
+                        </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>You are not enrolled in any courses yet.</p>
+            <?php endif; ?>
         </div>
 
-        <!-- Assessments Section -->
+        <div class="enrollment">
+            <h2>Enroll in New Courses</h2>
+            <form method="POST" action="">
+                <select name="course_id" required>
+                    <option value="">Select a Course</option>
+                    <?php foreach ($availableCourses as $availableCourse): ?>
+                        <option value="<?php echo $availableCourse['id']; ?>"><?php echo htmlspecialchars($availableCourse['course_name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" name="enroll">Enroll</button>
+                <?php if (isset($enrollmentError)): ?>
+                    <p style="color: red;"><?php echo htmlspecialchars($enrollmentError); ?></p>
+                <?php endif; ?>
+            </form>
+        </div>
+
         <div class="assessments">
-            <h2>Assessments</h2>
-            <?php foreach ($assessments as $assessment): ?>
-                <div class="assessment-card">
-                    <h3><?php echo $assessment['quiz_title']; ?></h3>
-                    <p>Course: <?php echo $assessment['course_name']; ?></p>
-                    <p>Status: <?php echo $assessment['status']; ?></p>
-                </div>
-            <?php endforeach; ?>
+            <h2>Your Assessments</h2>
+            <!-- Future implementation of assessment logic -->
         </div>
 
-        <!-- Upcoming Assignments/Lessons -->
         <div class="assignments">
-            <h2>Upcoming Assignments/Lessons</h2>
-            <?php foreach ($upcomingAssignments as $assignment): ?>
-                <div class="assignment-card">
-                    <h3><?php echo $assignment['title']; ?></h3>
-                    <p>Due Date: <?php echo $assignment['due_date']; ?></p>
-                </div>
-            <?php endforeach; ?>
+            <h2>Upcoming Assignments</h2>
+            <!-- Future implementation of assignment logic -->
         </div>
 
-        <!-- Messages from Instructors -->
         <div class="messages">
             <h2>Messages from Instructors</h2>
-            <?php foreach ($messagesFromInstructors as $message): ?>
-                <div class="message-card">
-                    <h3>Message</h3>
-                    <p><?php echo $message['message']; ?></p>
-                    <p><small><?php echo $message['date']; ?></small></p>
-                </div>
-            <?php endforeach; ?>
+            <!-- Future implementation of messaging logic -->
         </div>
 
-        <!-- Course Materials -->
         <div class="materials">
-            <h2>Course Syllabus & Materials</h2>
-            <?php foreach ($courseMaterials as $material): ?>
-                <div class="material-card">
-                    <h3><?php echo $material['course_name']; ?></h3>
-                    <p><a href="<?php echo $material['syllabus']; ?>" class="download-link">Download Syllabus</a></p>
-                    <ul>
-                        <?php foreach ($material['materials'] as $file): ?>
-                            <li><a href="<?php echo $file; ?>" class="download-link"><?php echo $file; ?></a></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Certificates Section -->
-        <div class="certificates">
-            <h2>Certificates</h2>
-            <?php foreach ($studentCourses as $course): ?>
-                <?php if ($course['certificate']): ?>
-                    <div class="certificate-card">
-                        <h3><?php echo $course['course_name']; ?> Certificate</h3>
-                        <p><a href="<?php echo $course['certificate']; ?>" class="download-link">Download Certificate</a></p>
-                    </div>
-                <?php endif; ?>
-            <?php endforeach; ?>
+            <h2>Your Course Materials</h2>
+            <!-- Future implementation of materials logic -->
         </div>
     </div>
 </section>
 
-<!-- Footer Section -->
 <footer>
-    <p>Bonnie Computer Hub © 2024. All rights reserved.</p>
+    <p>&copy; 2024 Bonnie Computer Hub. All rights reserved.</p>
 </footer>
-
 </body>
 </html>

@@ -11,7 +11,7 @@ require 'db.php';
 $course_name = $_GET['course']; // Get course name from URL
 $sql = "SELECT s.id, s.name, s.email, p.completion_percentage
         FROM users s
-        JOIN progress p ON s.id = p.id
+        JOIN student_progress p ON s.id = p.id
         JOIN courses c ON p.id = c.id
         WHERE c.course_name = ?";
 

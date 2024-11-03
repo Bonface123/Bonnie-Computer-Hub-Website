@@ -5,43 +5,47 @@ session_start();
 
 $message = ""; // To store success or error messages
 
-// Handle Student Login
-if (isset($_POST['login'])) {
+// Assuming you have a form that submits email and password
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
-
+    
+    // Fetch user from database
     $sql = "SELECT * FROM users WHERE email = ? AND role = 'teacher'";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
-
+    
     if ($result->num_rows > 0) {
-        $student = $result->fetch_assoc();
-        if (password_verify($password, $student['password'])) {
+        $user = $result->fetch_assoc();
+        // Assuming password verification is handled
+        if (password_verify($password, $user['password'])) {
+            // Store user data in session
             $_SESSION['loggedin'] = true;
-            $_SESSION['user_id'] = $teacher['id'];
-            $_SESSION['name'] = $teacher['name'];
-            $_SESSION['email'] = $teacher['email'];
-            $_SESSION['role'] = 'teacher';
-            $_SESSION['profile_picture'] = $teacher['profile_picture']; // Assuming this exists
-            header("Location: teacher_dashboard.php");
+            $_SESSION['id'] = $user['id']; // This should be your student ID
+            $_SESSION['name'] = $user['name'];
+            $_SESSION['email'] = $user['email'];
+            // Optional: store profile picture
+            $_SESSION['profile_picture'] = $user['profile_picture'] ?? 'uploads/default_profile.png';
+            
+            header('Location:teacher_dashboard.php'); // Redirect to dashboard
             exit;
         } else {
-            $message = "Incorrect password.";
+            echo "Invalid password.";
         }
     } else {
-        $message = "No account found with that email.";
+        echo "No user found with that email.";
     }
 }
 
-// Handle Student Registration
+// Handle Teacher Registration
 if (isset($_POST['register'])) {
     $name = $_POST['name'];
     $email = $_POST['email'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    $sql = "SELECT * FROM users WHERE email = ?";
+    $sql = "SELECT * FROM users WHERE email = ? AND role = 'teacher'";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -54,7 +58,7 @@ if (isset($_POST['register'])) {
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("sss", $name, $email, $password);
         if ($stmt->execute()) {
-            $message = "Registration successful. You can now log in.";
+            $message ="Registration successful. You can now log in.";
         } else {
             $message = "Error: " . $stmt->error;
         }
@@ -83,7 +87,7 @@ if (isset($_POST['reset_password'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Teacher`s Portal | Login, Register, Forgot Password</title>
+    <title>Student Portal | Login, Register, Forgot Password</title>
     <style>
         .active { display: block; }
         .form { display: none; }

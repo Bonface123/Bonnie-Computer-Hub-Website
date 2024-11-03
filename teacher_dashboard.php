@@ -1,45 +1,101 @@
 <?php
-// Ensure the user is logged in. If not, redirect to login page.
 session_start();
+require 'db.php'; // Database connection file
+
+// Check if the user is logged in
 if (!isset($_SESSION['loggedin'])) {
     header('Location: teacher_login.php');
     exit;
 }
 
-// Assuming the teacher's name and email are already set in the session
-$teacherName = $_SESSION['name']; // Example from session
-$teacherEmail = $_SESSION['email']; // Example email from session
-$profile_picture = isset($_SESSION['profile_picture']) ? $_SESSION['profile_picture'] : 'uploads/default_profile.png';
+// Get teacher details from the session
+$teacherId = $_SESSION['id'];
+$teacherName = $_SESSION['name'];
+$teacherEmail = $_SESSION['email'];
+// Database connection
+$mysqli = new mysqli("localhost", "root", "", "student_portal"); // Update with your DB credentials
 
-$assignedCourses = [
-    ['course_name' => 'Full Stack Web Development', 'students' => 25],
-    ['course_name' => 'Python for Data Science', 'students' => 30],
-];
+// Check connection
+if ($mysqli->connect_error) {
+    die("Connection failed: " . $mysqli->connect_error);
+}
 
-// Example data for pending assignments to grade
-$pendingAssignments = [
-    ['title' => 'Build a Portfolio Website', 'student' => 'John Doe', 'submitted_on' => '2024-10-20'],
-    ['title' => 'Data Analysis Project', 'student' => 'Jane Doe', 'submitted_on' => '2024-10-22'],
-];
+// Fetch assigned courses
+$coursesQuery = "SELECT c.course_name, COUNT(u.id) as students 
+                 FROM courses c 
+                 LEFT JOIN users u ON c.id = u.id AND u.role = 'student' 
+                 GROUP BY c.course_name";
+$coursesResult = $mysqli->query($coursesQuery);
 
-// Example data for course materials
-$courseMaterials = [
-    ['course_name' => 'Full Stack Web Development', 'materials' => ['HTML Basics.pdf', 'CSS Advanced Techniques.pdf']],
-    ['course_name' => 'Python for Data Science', 'materials' => ['Pandas Introduction.pdf', 'Data Cleaning Techniques.pdf']],
-];
+$assignedCourses = [];
+if ($coursesResult) {
+    while ($row = $coursesResult->fetch_assoc()) {
+        $assignedCourses[] = $row;
+    }
+}
 
-// Example student progress data (can be fetched from database)
-$studentProgress = [
-    ['student_name' => 'John Doe', 'progress' => 80],
-    ['student_name' => 'Jane Doe', 'progress' => 65],
-];
+// Fetch pending assignments to grade
+$assignmentsQuery = "SELECT title, u.name as student_name, submitted_on 
+                     FROM assignments a 
+                     JOIN users u ON a.id = u.id 
+                     WHERE u.role = 'student' AND a.teacher_id = ?";
+$stmt = $mysqli->prepare($assignmentsQuery);
+$stmt->bind_param("i", $_SESSION['teacher_id']); // assuming teacher_id is stored in session
+$stmt->execute();
+$pendingAssignmentsResult = $stmt->get_result();
 
-// Example analytics data
-$analyticsData = [
-    'Full Stack Web Development' => ['avg_grade' => 85, 'completion_rate' => 90],
-    'Python for Data Science' => ['avg_grade' => 78, 'completion_rate' => 75],
-];
+$pendingAssignments = [];
+while ($assignment = $pendingAssignmentsResult->fetch_assoc()) {
+    $pendingAssignments[] = $assignment;
+}
+
+// Fetch course materials
+$materialsQuery = "SELECT course_name, material_name FROM course_materials";
+$materialsResult = $mysqli->query($materialsQuery);
+
+$courseMaterials = [];
+if ($materialsResult) {
+    while ($material = $materialsResult->fetch_assoc()) {
+        $courseMaterials[$material['course_name']][] = $material['material_name'];
+    }
+}
+
+// Fetch student progress data
+$progressQuery = "SELECT u.name as student_name, sp.progress 
+                  FROM student_progress sp 
+                  JOIN users u ON sp.student_id = u.id 
+                  WHERE u.role = 'student' AND sp.id = ?";
+$stmt = $mysqli->prepare($progressQuery);
+$stmt->bind_param("i", $_SESSION['teacher_id']);
+$stmt->execute();
+$studentProgressResult = $stmt->get_result();
+
+$studentProgress = [];
+while ($progress = $studentProgressResult->fetch_assoc()) {
+    $studentProgress[] = $progress;
+}
+
+// Fetch analytics data
+$analyticsQuery = "SELECT c.course_name, AVG(a.grade) as avg_grade, AVG(a.completion_rate) as completion_rate 
+                   FROM analytics a 
+                   JOIN courses c ON a.course_id = c.id 
+                   GROUP BY c.course_name";
+$analyticsResult = $mysqli->query($analyticsQuery);
+
+$analyticsData = [];
+if ($analyticsResult) {
+    while ($data = $analyticsResult->fetch_assoc()) {
+        $analyticsData[$data['course_name']] = [
+            'avg_grade' => round($data['avg_grade'], 2),
+            'completion_rate' => round($data['completion_rate'], 2)
+        ];
+    }
+}
+
+// Close the database connection
+$mysqli->close();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -294,7 +350,6 @@ $analyticsData = [
     </style>
 </head>
 
-<!-- Header Section -->
 <header>
   <nav class="container">
     <div class="logo">
@@ -302,9 +357,8 @@ $analyticsData = [
     </div>
     
     <ul class="nav-links">
-<li><a href="view_students.php?course=<?php echo urlencode($course['course_name']); ?>" class="action-link">View Students</a></li>
+        <li><a href="view_students.php" class="action-link">View Students</a></li>
         <li><a href="create_quiz.php">Create Quiz</a></li>
-      
         <li><a href="upload_material.php">Upload Course Material</a></li>
         <li><a href="analytics.php">View Course Analytics</a></li>
         <li><a href="logout.php">Logout</a></li>
@@ -313,27 +367,28 @@ $analyticsData = [
 </header>
 
 <body>
-    <h1>Welcome to Your Teacher Dashboard, <?php echo $teacherName; ?>!</h1>
+    <h1>Welcome to Your Teacher Dashboard, <?php echo htmlspecialchars($teacherName); ?>!</h1>
 
     <!-- Dashboard Section -->
     <section class="dashboard">
         <div class="container">
 
             <!-- Teacher Profile -->
-            <div class="section profile">
-                <h2>Your Profile</h2>
-                <p><strong>Name:</strong> <?php echo $teacherName; ?></p>
-                <p><strong>Email:</strong> <?php echo $teacherEmail; ?></p>
-                <p><a href="update-profile.php" class="action-link">Update Profile</a></p>
-            </div>
+            <div class="profile">
+            <h2>Your Profile</h2>
+            <p><strong>Name:</strong> <?php echo htmlspecialchars($teacherName); ?></p>
+            <p><strong>Email:</strong> <?php echo htmlspecialchars($teacherEmail); ?></p>
+            <img src="<?php echo htmlspecialchars($profile_picture); ?>" alt="Profile Picture" class="profile-picture">
+            <p><a href="update_profile.php" class="download-link">Update Profile</a></p>
+        </div>
 
             <!-- Courses Managed Section -->
             <div class="section courses">
                 <h2>Courses You Manage</h2>
                 <?php foreach ($assignedCourses as $course): ?>
                     <div class="course-card">
-                        <h3><?php echo $course['course_name']; ?></h3>
-                        <p>Number of Students: <?php echo $course['students']; ?></p>
+                        <h3><?php echo htmlspecialchars($course['course_name']); ?></h3>
+                        <p>Number of Students: <?php echo htmlspecialchars($course['students']); ?></p>
                         <p><a href="view_students.php?course=<?php echo urlencode($course['course_name']); ?>" class="action-link">View Students</a></p>
                     </div>
                 <?php endforeach; ?>
@@ -344,56 +399,66 @@ $analyticsData = [
                 <h2>Pending Assignments to Grade</h2>
                 <?php foreach ($pendingAssignments as $assignment): ?>
                     <div class="assignment-card">
-                        <h3><?php echo $assignment['title']; ?></h3>
-                        <p>Submitted by: <?php echo $assignment['student']; ?></p>
-                        <p>Submitted on: <?php echo $assignment['submitted_on']; ?></p>
-                        <p><a href="grade_assignments.php?assignment=<?php echo urlencode($assignment['title']); ?>&student=<?php echo urlencode($assignment['student']); ?>" class="action-link">Grade Assignment</a></p>
+                        <h3><?php echo htmlspecialchars($assignment['title']); ?></h3>
+                        <p>Submitted by: <?php echo htmlspecialchars($assignment['student_name']); ?></p>
+                        <p>Submitted on: <?php echo htmlspecialchars($assignment['submitted_on']); ?></p>
+                        <p><a href="grade_assignments.php?assignment=<?php echo urlencode($assignment['title']); ?>&student=<?php echo urlencode($assignment['student_name']); ?>" class="action-link">Grade Assignment</a></p>
                     </div>
                 <?php endforeach; ?>
             </div>
 
-         <!-- Create Quizzes and Assignments -->
-<div class="section quizzes">
-    <h2>Create Quizzes and Assignments</h2>
-    <div class="quiz-card">
-        <h3>Create New Quiz</h3>
-        <p><a href="create_quiz.php" class="action-link">Start Creating Quiz</a></p>
-    </div>
-    <div class="assignment-card">
-        <h3>Create New Assignment</h3>
-        <p><a href="create_assignment.php" class="action-link">Start Creating Assignment</a></p>
-    </div>
-</div>
-
-
-
+            <!-- Create Quizzes and Assignments -->
+            <div class="section quizzes">
+                <h2>Create Quizzes and Assignments</h2>
+                <div class="quiz-card">
+                    <h3>Create New Quiz</h3>
+                    <p><a href="create_quiz.php" class="action-link">Start Creating Quiz</a></p>
+                </div>
+                <div class="assignment-card">
+                    <h3>Create New Assignment</h3>
+                    <p><a href="create_assignment.php" class="action-link">Start Creating Assignment</a></p>
+                </div>
+            </div>
 <!-- Course Materials Section -->
 <div class="materials">
-    <h2>Course Materials</h2>
-    <?php foreach ($courseMaterials as $material): ?>
-        <div class="material-card">
-            <h3><?php echo $material['course_name']; ?></h3>
-            <p>Materials Available:</p>
-            <ul>
-                <?php foreach ($material['materials'] as $file): ?>
-                    <li><a href="<?php echo $file; ?>" class="action-link"><?php echo $file; ?></a></li>
+            <h2>Course Materials</h2>
+            <?php if (!empty($courseMaterials)): ?>
+                <?php foreach ($courseMaterials as $course => $materials): ?>
+                    <div class="material-card">
+                        <h3><?php echo htmlspecialchars($course); ?></h3>
+                        <p>Materials Available:</p>
+                        <ul>
+                            <?php foreach ($materials as $file): ?>
+                                <li>
+                                    <a href="<?php echo htmlspecialchars($file); ?>" class="action-link">
+                                        <?php echo htmlspecialchars(basename($file)); ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <p>
+                            <a href="upload_material.php?course=<?php echo urlencode($course); ?>" class="action-link">
+                                Upload New Material
+                            </a>
+                        </p>
+                    </div>
                 <?php endforeach; ?>
-            </ul>
-            <p><a href="upload_material.php?course=<?php echo urlencode($material['course_name']); ?>" class="action-link">Upload New Material</a></p>
+            <?php else: ?>
+                <p>No materials available for any course.</p>
+            <?php endif; ?>
         </div>
-    <?php endforeach; ?>
-</div>
+
 
             <!-- Student Progress Section -->
             <div class="section progress">
                 <h2>Student Progress</h2>
                 <?php foreach ($studentProgress as $student): ?>
                     <div class="progress-card">
-                        <h3><?php echo $student['student_name']; ?></h3>
+                        <h3><?php echo htmlspecialchars($student['student_name']); ?></h3>
                         <div class="progress-bar">
-                            <span style="width: <?php echo $student['progress']; ?>%;"></span>
+                            <span style="width: <?php echo htmlspecialchars($student['progress']); ?>%;"></span>
                         </div>
-                        <p>Progress: <?php echo $student['progress']; ?>%</p>
+                        <p>Progress: <?php echo htmlspecialchars($student['progress']); ?>%</p>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -403,35 +468,17 @@ $analyticsData = [
                 <h2>Course Analytics</h2>
                 <?php foreach ($analyticsData as $course => $data): ?>
                     <div class="analytics-card">
-                        <h3><?php echo $course; ?></h3>
-                        <p>Average Grade: <?php echo $data['avg_grade']; ?></p>
-                        <p>Completion Rate: <?php echo $data['completion_rate']; ?>%</p>
+                        <h3><?php echo htmlspecialchars($course); ?></h3>
+                        <p>Average Grade: <?php echo htmlspecialchars($data['avg_grade']); ?></p>
+                        <p>Completion Rate: <?php echo htmlspecialchars($data['completion_rate']); ?>%</p>
                     </div>
                 <?php endforeach; ?>
             </div>
+        </div>
+    </section>
 
-
-            <!-- Send Messages to Students -->
-<div class="messages">
-    <h2>Send a Message</h2>
-    <div class="message-card">
-        <p><a href="send_message.php" class="action-link">Send a Message to Your Students</a></p>
-    </div>
-</div>
-
-
-
-<!-- Footer -->
-<footer class="footer">
-    <div class="footer-content">
-        <p>&copy; 2024 Bonnie Computer Hub. All Rights Reserved.</p>
-        <ul class="footer-links">
-            <li><a href="privacy-policy.php">Privacy Policy</a></li>
-            <li><a href="terms-of-service.php">Terms of Service</a></li>
-            <li><a href="contact.php">Contact Us</a></li>
-        </ul>
-    </div>
-</footer>
-
+    <footer>
+        <p>&copy; <?php echo date("Y"); ?> Bonnie Computer Hub. All rights reserved.</p>
+    </footer>
 </body>
 </html>

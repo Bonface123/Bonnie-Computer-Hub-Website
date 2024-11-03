@@ -167,7 +167,7 @@ textarea {
             </p>
         <?php endif; ?>
 
-        <form action="create_assignments.php" method="post">
+        <form action="create_assignment.php" method="post">
             <div class="form-group">
                 <label for="title">Assignment Title</label>
                 <input type="text" id="title" name="title" required>

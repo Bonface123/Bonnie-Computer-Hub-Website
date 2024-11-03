@@ -1,6 +1,10 @@
 <?php
-// Ensure the user is logged in. If not, redirect to login page.
-session_start();
+// Initialize the session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Check if the user is logged in
 if (!isset($_SESSION['loggedin'])) {
     header('Location: login.php');
     exit;
@@ -13,13 +17,13 @@ if ($conn->connect_error) {
 }
 
 // Use `id` from the session for the logged-in user
-$user_id = $_SESSION['id'];
+
 
 // Fetch user data from the database
-$stmt = $conn->prepare("SELECT name, email, phone, address, profile_picture FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT name, email, phone, address, profile_picture, user_type FROM users WHERE id = ?"); // Added user_type
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$stmt->bind_result($name, $email, $phone, $address, $profile_picture);
+$stmt->bind_result($name, $email, $phone, $address, $profile_picture, $user_type); // Added user_type
 $stmt->fetch();
 $stmt->close();
 
@@ -29,9 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_email = $_POST['email'] ?? null;
     $new_phone = $_POST['phone'] ?? null;
     $new_address = $_POST['address'] ?? null;
-
-    // Initialize $update_stmt to avoid undefined variable issues
-    $update_stmt = null;
 
     // Handle profile picture upload
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === 0) {
@@ -44,38 +45,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mkdir($target_dir, 0777, true);
         }
 
-        // Check file size (limit to 2MB) and allowed file types
+        // Check file size and allowed file types
         if ($_FILES["profile_picture"]["size"] > 2000000) {
-            echo "<div class='message error'>Sorry, your file is too large.</div>";
+            echo "<div class='message error'>File size should be less than 2MB.</div>";
         } elseif (!in_array($imageFileType, ['jpg', 'jpeg', 'png'])) {
-            echo "<div class='message error'>Sorry, only JPG, JPEG & PNG files are allowed.</div>";
-        } elseif (move_uploaded_file($_FILES["profile_picture"]["tmp_name"], $target_file)) {
-            // Confirm successful upload
-            echo "<div class='message success'>File uploaded successfully.</div>";
-
-            // Update profile picture path in the database
-            $update_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, phone = ?, address = ?, profile_picture = ? WHERE id = ?");
-            $update_stmt->bind_param("sssssi", $new_name, $new_email, $new_phone, $new_address, $target_file, $user_id);
+            echo "<div class='message error'>Only JPG, JPEG, & PNG files are allowed.</div>";
         } else {
-            echo "<div class='message error'>Sorry, there was an error uploading your file.</div>";
+            if (move_uploaded_file($_FILES["profile_picture"]["tmp_name"], $target_file)) {
+                $update_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, phone = ?, address = ?, profile_picture = ? WHERE id = ?");
+                $update_stmt->bind_param("sssssi", $new_name, $new_email, $new_phone, $new_address, $target_file, $user_id);
+            } else {
+                echo "<div class='message error'>Error uploading your file.</div>";
+            }
         }
     }
 
-    // If no new file uploaded or $update_stmt not set, only update name, email, phone, and address
-    if (!$update_stmt) {
+    // If no new file uploaded, only update other details
+    if (!isset($update_stmt)) {
         $update_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, phone = ?, address = ? WHERE id = ?");
         $update_stmt->bind_param("ssssi", $new_name, $new_email, $new_phone, $new_address, $user_id);
     }
 
-    // Execute update statement
+    // Execute the update statement
     if ($update_stmt->execute()) {
-        echo "<div class='message success'>Profile updated successfully!</div>";
-        // Comment out during testing to view success message
-        // header('Location: student_dashboard.php');
+        $_SESSION['success_message'] = "Profile updated successfully!";
+        
+        // Redirect based on user type
+        if ($user_type === 'student') {
+            header('Location: student_dashboard.php');
+        } elseif ($user_type === 'teacher') {
+            header('Location: teacher_dashboard.php');
+        }
         exit;
     } else {
         echo "<div class='message error'>Error updating profile: " . $update_stmt->error . "</div>";
     }
+
     $update_stmt->close();
 }
 
@@ -206,6 +211,7 @@ $conn->close();
 
             <button type="submit" class="btn">Save Changes</button>
         </form>
+        <a href="student_dashboard.php" class="back-link">Back to Dashboard</a>
     </div>
 </body>
 </html>

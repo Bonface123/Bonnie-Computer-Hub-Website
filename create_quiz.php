@@ -1,5 +1,6 @@
 <?php
 session_start();
+require 'db.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['loggedin'])) {
@@ -7,49 +8,50 @@ if (!isset($_SESSION['loggedin'])) {
     exit;
 }
 
-require 'db.php'; // Include the database connection file
-
-// Initialize variables for error messages and status
-$titleError = $descriptionError = $dateError = "";
+$teacher_id = $_SESSION['id'] ?? null;
 $statusMessage = "";
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Collect and sanitize user input
+// Insert quiz if form is submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
     $due_date = trim($_POST['due_date']);
-    $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : null;
+    $due_time = trim($_POST['due_time']);
+    $course_id = intval($_POST['course_id']);
 
-    // Validate the inputs
-    $isValid = true;
+    // Combine due_date and due_time into a single datetime string
+    $due_datetime = $due_date . ' ' . $due_time;
 
-    if (empty($title)) {
-        $titleError = "Quiz title is required.";
-        $isValid = false;
+    // Update SQL to insert due_datetime
+    $sql = "INSERT INTO quizzes (title, description, due_date, course_id, teacher_id) VALUES (?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sssii", $title, $description, $due_datetime, $course_id, $teacher_id);
+
+    if ($stmt->execute()) {
+        $statusMessage = "Quiz created successfully!";
+    } else {
+        $statusMessage = "Error creating quiz: " . $conn->error;
     }
+    $_SESSION['statusMessage'] = $statusMessage;
+    header("Location: create_quiz.php");
+    exit;
+}
 
-    if (empty($description)) {
-        $descriptionError = "Description is required.";
-        $isValid = false;
+// Retrieve quizzes for this teacher
+$sql = "SELECT * FROM quizzes WHERE teacher_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $teacher_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Check if quizzes are being retrieved
+$quizzes = [];
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $quizzes[] = $row;
     }
-
-    if (empty($due_date)) {
-        $dateError = "Due date is required.";
-        $isValid = false;
-    }
-
-    // Insert data into database if valid
-    if ($isValid) {
-        $sql = "INSERT INTO quizzes (title, description, due_date, course_id) VALUES (?, ?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssi", $title, $description, $due_date, $course_id);
-
-        if ($stmt->execute()) {
-            $statusMessage = "Quiz created successfully!";
-        } else {
-            $statusMessage = "Error creating quiz: " . $conn->error;
-        }
-    }
+} else {
+    $statusMessage = "No quizzes found.";
 }
 ?>
 
@@ -57,102 +59,156 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Quiz</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        * {
+
+        /* Basic Reset */
+* {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
 
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 20px;
-}
-
-.container {
-    max-width: 600px;
-    margin: auto;
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-    text-align: center;
+    background-color: #f4f4f9;
     color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Container */
+.container {
+    width: 90%;
+    max-width: 800px;
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Headings */
+h2 {
+    font-size: 24px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+h3 {
+    font-size: 20px;
+    margin: 1.5rem 0;
+    color: #555;
+}
+
+/* Status Message */
+.status {
+    color: #4CAF50;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+/* Form Styles */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
 }
 
 label {
-    display: block;
-    margin-bottom: 5px;
     font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #333;
 }
 
 input[type="text"],
 input[type="date"],
+input[type="time"],
 input[type="number"],
 textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 16px;
-}
-
-input[type="text"]:focus,
-input[type="date"]:focus,
-input[type="number"]:focus,
-textarea:focus {
-    border-color: #007BFF;
+    width: 100%;
     outline: none;
 }
 
-.error {
-    color: red;
-    font-size: 12px;
+textarea {
+    resize: vertical;
 }
 
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #007BFF;
-    border: none;
-    color: white;
+/* Button */
+button[type="submit"] {
+    padding: 0.75rem;
     font-size: 16px;
-    cursor: pointer;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
     border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
 }
 
-button:hover {
+button[type="submit"]:hover {
     background-color: #0056b3;
 }
 
-.status {
-    text-align: center;
-    color: green;
-    margin-bottom: 20px;
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
 }
 
-.back-link {
-    display: inline-block;
-    margin-top: 20px;
-    text-align: center;
-    color: #007BFF;
+thead th {
+    background-color: #007bff;
+    color: #fff;
+    padding: 0.75rem;
+    text-align: left;
+    font-size: 16px;
+}
+
+tbody td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #ddd;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Links */
+a {
+    color: #007bff;
     text-decoration: none;
 }
 
-.back-link:hover {
+a:hover {
     text-decoration: underline;
 }
 
+a:visited {
+    color: #0056b3;
+}
+
+/* Back to Dashboard Link */
+a[href="teacher_dashboard.php"] {
+    display: inline-block;
+    margin-top: 1.5rem;
+    font-size: 16px;
+    color: #333;
+}
     </style>
 </head>
 <body>
@@ -167,19 +223,21 @@ button:hover {
             <div class="form-group">
                 <label for="title">Quiz Title</label>
                 <input type="text" id="title" name="title" required>
-                <span class="error"><?php echo $titleError; ?></span>
             </div>
 
             <div class="form-group">
                 <label for="description">Description</label>
                 <textarea id="description" name="description" rows="5" required></textarea>
-                <span class="error"><?php echo $descriptionError; ?></span>
             </div>
 
             <div class="form-group">
                 <label for="due_date">Due Date</label>
                 <input type="date" id="due_date" name="due_date" required>
-                <span class="error"><?php echo $dateError; ?></span>
+            </div>
+
+            <div class="form-group">
+                <label for="due_time">Due Time</label>
+                <input type="time" id="due_time" name="due_time" required>
             </div>
 
             <div class="form-group">
@@ -190,7 +248,36 @@ button:hover {
             <button type="submit">Create Quiz</button>
         </form>
 
-        <a href="teacher_dashboard.php" class="back-link">Back to Dashboard</a>
+        <h3>Your Quizzes</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Due Date and Time</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (count($quizzes) > 0): ?>
+                    <?php foreach ($quizzes as $quiz): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($quiz['title']); ?></td>
+                            <td><?php echo htmlspecialchars($quiz['description']); ?></td>
+                            <td><?php echo htmlspecialchars(date("Y-m-d H:i", strtotime($quiz['due_date']))); ?></td>
+                            <td>
+                                <a href="edit_quiz.php?id=<?php echo $quiz['id']; ?>">Edit</a>
+                                <a href="delete_quiz.php?id=<?php echo $quiz['id']; ?>" onclick="return confirm('Are you sure you want to delete this quiz?');">Delete</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr><td colspan="4">No quizzes created yet.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <a href="teacher_dashboard.php">Back to Dashboard</a>
     </div>
 </body>
 </html>
