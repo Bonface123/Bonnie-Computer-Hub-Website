@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (move_uploaded_file($material['tmp_name'], $upload_file)) {
         $sql = "INSERT INTO course_materials (course_id, material_file) VALUES (?, ?)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param('is', $course_id, $upload_file);
+        $stmt->bind_param('is', $id, $upload_file);
         if ($stmt->execute()) {
             $statusMessage = "Material uploaded successfully!";
         } else {

@@ -1,3 +1,34 @@
+<?php
+// course_catalog.php
+
+// Database connection
+$host = 'localhost'; // Change if your database is hosted elsewhere
+$db = 'student_portal'; // Change to your database name
+$user = 'root'; // Change to your database username
+$pass = ''; // Change to your database password
+
+$conn = new mysqli($host, $user, $pass, $db);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Fetch courses from the database
+$sql = "SELECT id, course_name, description FROM courses";
+$result = $conn->query($sql);
+
+// Store the courses in an array
+$courses = [];
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $courses[] = $row; // Add each course to the array
+    }
+}
+
+$conn->close(); // Close the database connection
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,23 +57,17 @@
             <p>This program is divided into three modules, each lasting 2 months. Enroll in one or all modules to master full-stack development.</p>
             
             <div class="course-grid">
-                <div class="course-card">
-                    <h3>Module 1: Front-End Development</h3>
-                    <p>Learn essential front-end web development skills like HTML, CSS, JavaScript, and React to build dynamic, responsive websites.</p>
-                    <a href="course_details.php?id=1" class="cta-btn">View Details</a>
-                </div>
-                
-                <div class="course-card">
-                    <h3>Module 2: Back-End Development</h3>
-                    <p>Master server-side programming with Node.js, Express, databases (SQL & NoSQL), and authentication systems to build robust back-end applications.</p>
-                    <a href="course_details.php?id=2" class="cta-btn">View Details</a>
-                </div>
-                
-                <div class="course-card">
-                    <h3>Module 3: Full-Stack Development & Deployment</h3>
-                    <p>Combine front-end and back-end skills to create full-stack applications, implement real-time features, and deploy scalable web apps.</p>
-                    <a href="course_details.php?id=3" class="cta-btn">View Details</a>
-                </div>
+                <?php if (!empty($courses)): ?>
+                    <?php foreach ($courses as $course): ?>
+                        <div class="course-card">
+                            <h3><?php echo htmlspecialchars($course['course_name']); ?></h3>
+                            <p><?php echo htmlspecialchars($course['description']); ?></p>
+                            <a href="course_details.php?id=<?php echo $course['id']; ?>" class="cta-btn">View Details</a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p>No courses available at the moment.</p>
+                <?php endif; ?>
             </div>
         </section>
     </main>

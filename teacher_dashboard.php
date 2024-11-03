@@ -302,7 +302,7 @@ $analyticsData = [
     </div>
     
     <ul class="nav-links">
-<li><a href="view-students.php?course=<?php echo urlencode($course['course_name']); ?>" class="action-link">View Students</a></li>
+<li><a href="view_students.php?course=<?php echo urlencode($course['course_name']); ?>" class="action-link">View Students</a></li>
         <li><a href="create_quiz.php">Create Quiz</a></li>
       
         <li><a href="upload_material.php">Upload Course Material</a></li>
