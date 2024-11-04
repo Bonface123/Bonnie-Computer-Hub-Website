@@ -130,3 +130,10 @@ ALTER TABLE users
 ADD COLUMN address VARCHAR(255) AFTER phone;
 
 ALTER TABLE quizzes ADD COLUMN teacher_id INT NOT NULL;
+
+--added
+ALTER TABLE assignments 
+ADD course_name VARCHAR(255) NOT NULL;
+--added
+ALTER TABLE assignments 
+ADD status ENUM('pending', 'completed', 'overdue') NOT NULL DEFAULT 'pending';

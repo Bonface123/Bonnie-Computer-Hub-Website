@@ -102,7 +102,7 @@ $mysqli->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Dashboard | Bonnie Computer Hub</title>
-    <link rel="stylesheet" href="styles.css">
+
     <style>
         /* Header Section Styles */
         body {
@@ -111,67 +111,140 @@ $mysqli->close();
             background-color: #f8f9fa; /* Light background for contrast */
         }
 
-        header {
-            background-color: #1e1e1e; /* Black */
-            color: #ffffff; /* White */
-            padding: 15px 0;
-            position: sticky;
-            top: 0;
-            width: 100%;
-            z-index: 1000; /* Ensures it stays above other content */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow for better visibility */
-        }
+/* Header Styling */
+header {
+    background-color: #1e1e1e; /* Black */
+    color: #ffffff; /* White */
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000; /* Ensures it stays above other content */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow for better visibility */
+}
 
-        header nav.container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
+header nav.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
 
-        .logo a {
-            font-size: 24px;
-            font-weight: bold;
-            text-decoration: none;
-            color: white; /* Brand color for the logo */
-            transition: color 0.3s;
-        }
+/* Logo Styling */
+.logo a {
+    font-size: 24px;
+    font-weight: bold;
+    text-decoration: none;
+    color: white; /* Brand color for the logo */
+    transition: color 0.3s;
+}
 
-        .logo a:hover {
-            color: goldenrod; /* Hover effect on logo */
-        }
+.logo a:hover {
+    color: goldenrod; /* Hover effect on logo */
+}
 
-        .nav-links {
-            list-style: none;
-            display: flex;
-            gap: 20px; /* Space between menu items */
-            margin: 0;
-            padding: 0;
-        }
+.logo img {
+    margin-right: 10px; /* Space between image and text */
+    vertical-align: middle; /* Align image with text */
+}
 
-        .nav-links li {
-            margin: 0;
-        }
+/* Navigation Links Styling */
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 20px; /* Space between menu items */
+    margin: 0;
+    padding: 0;
+}
 
-        .nav-links a {
-            text-decoration: none;
-            font-size: 16px;
-            color: white; /* Default color for links */
-            padding: 8px 15px;
-            transition: color 0.3s, background-color 0.3s;
-            text-align: center;
-        }
+.nav-links li {
+    margin: 0;
+}
 
-        .nav-links a:hover {
-            color: #ffa500; /* Golden/Orange */
-        }
+.nav-links a {
+    text-decoration: none;
+    font-size: 16px;
+    color: white; /* Default color for links */
+    padding: 8px 15px;
+    transition: color 0.3s, background-color 0.3s;
+    text-align: center;
+}
 
-        .nav-links a.active {
-            color: goldenrod; /* Active page indicator */
-            font-weight: bold;
-        }
+.nav-links a:hover {
+    color: #ffa500; /* Golden/Orange */
+}
+
+.nav-links a.active {
+    color: goldenrod; /* Active page indicator */
+    font-weight: bold;
+}
+
+/* Profile Menu Styling */
+.profile-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-menu .dropdown {
+    display: none;
+    position: absolute;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 8px;
+    right: 0; /* Align dropdown to the right */
+}
+
+.profile-menu:hover .dropdown {
+    display: block;
+}
+
+.dropdown li {
+    padding: 12px 16px;
+    text-align: left;
+}
+
+.dropdown li a {
+    color: #007bff; /* Link color in dropdown */
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+}
+
+.dropdown li a:hover {
+    background-color: #f1f1f1;
+}
+
+/* Notifications Icon Styling */
+.nav-links li a[title="Notifications"] {
+    font-size: 20px;
+    position: relative;
+}
+
+.nav-links li a[title="Notifications"]::after {
+    content: '•'; /* Add a dot to indicate notifications */
+    color: red;
+    font-size: 16px;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
+
+/* Responsive Styling */
+@media (max-width: 768px) {
+    header nav.container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .nav-links {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+}
 
         .dashboard {
             margin: 50px auto; /* Center the dashboard */
@@ -187,6 +260,42 @@ $mysqli->close();
             color: #007bff; /* Brand color */
             margin-bottom: 20px;
         }
+
+        .profile-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-menu .dropdown {
+    display: none;
+    position: absolute;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 8px;
+    right: 0;
+}
+
+.profile-menu:hover .dropdown {
+    display: block;
+}
+
+.dropdown li {
+    padding: 12px 16px;
+    text-align: left;
+}
+
+.dropdown li a {
+    color: #007bff;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown li a:hover {
+    background-color: #f1f1f1;
+}
+
 
         h2 {
             color: #007bff; /* Brand color */
@@ -353,18 +462,37 @@ $mysqli->close();
 <header>
   <nav class="container">
     <div class="logo">
+      <!-- Include a logo image if available -->
+      <img src="images/BchLogo.jpg" alt="Bonnie Computer Hub Logo" style="height: 40px; vertical-align: middle;">
       <a href="index.html">BONNIE COMPUTER HUB - BCH</a>
+      <span style="color: goldenrod; font-size: 14px; margin-left: 10px;">Empowering Through Technology</span>
     </div>
     
     <ul class="nav-links">
         <li><a href="view_students.php" class="action-link">View Students</a></li>
         <li><a href="create_quiz.php">Create Quiz</a></li>
         <li><a href="upload_material.php">Upload Course Material</a></li>
-        <li><a href="analytics.php">View Course Analytics</a></li>
-        <li><a href="logout.php">Logout</a></li>
+        <li><a href="analytics.php">View Analytics</a></li>
+        <!-- Notification Bell -->
+        <li>
+            <a href="notifications.php" title="Notifications">
+                <span style="font-size: 20px;">🔔</span>
+            </a>
+        </li>
+        <!-- Profile Menu -->
+        <li class="profile-menu">
+            <a href="teacher_profile.php" class="action-link">
+                <span><?php echo htmlspecialchars($teacherName); ?> ▼</span>
+            </a>
+            <ul class="dropdown">
+                <li><a href="update_profile.php">Profile Settings</a></li>
+                <li><a href="logout.php">Logout</a></li>
+            </ul>
+        </li>
     </ul>
   </nav>
 </header>
+
 
 <body>
     <h1>Welcome to Your Teacher Dashboard, <?php echo htmlspecialchars($teacherName); ?>!</h1>
@@ -406,19 +534,23 @@ $mysqli->close();
                     </div>
                 <?php endforeach; ?>
             </div>
+<!-- Create Quizzes and Assignments -->
+<div class="section quizzes">
+    <h2>Create Quizzes and Assignments</h2>
+    <div class="quiz-card">
+        <h3>Create New Quiz</h3>
+        <p><a href="create_quiz.php" class="action-link">Start Creating Quiz</a></p>
+    </div>
+    <div class="assignment-card">
+        <h3>Create New Assignment</h3>
+        <p><a href="create_assignment.php" class="action-link">Start Creating Assignment</a></p>
+    </div>
+    <div class="view-assignments-card">
+        <h3>View All Assignments</h3>
+        <p><a href="view_assignments.php" class="action-link">See All Assignments</a></p>
+    </div>
+</div>
 
-            <!-- Create Quizzes and Assignments -->
-            <div class="section quizzes">
-                <h2>Create Quizzes and Assignments</h2>
-                <div class="quiz-card">
-                    <h3>Create New Quiz</h3>
-                    <p><a href="create_quiz.php" class="action-link">Start Creating Quiz</a></p>
-                </div>
-                <div class="assignment-card">
-                    <h3>Create New Assignment</h3>
-                    <p><a href="create_assignment.php" class="action-link">Start Creating Assignment</a></p>
-                </div>
-            </div>
 <!-- Course Materials Section -->
 <div class="materials">
             <h2>Course Materials</h2>

@@ -13,6 +13,16 @@ require 'db.php'; // Include the database connection file
 $titleError = $descriptionError = $dateError = "";
 $statusMessage = "";
 
+// Fetch courses to populate the dropdown
+$courses = [];
+$sql = "SELECT id, course_name FROM courses";
+$result = $conn->query($sql);
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $courses[] = $row;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Collect and sanitize user input
     $title = trim($_POST['title']);
@@ -40,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Insert data into database if valid
     if ($isValid) {
-        $sql = "INSERT INTO assignments (title, description, due_date, course_id) VALUES (?, ?, ?, ?)";
+        $sql = "INSERT INTO assignments (title, description, due_date, course_id, created_at) VALUES (?, ?, ?, ?, NOW())";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("sssi", $title, $description, $due_date, $course_id);
 
@@ -59,102 +69,140 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Assignment</title>
-    <link rel="stylesheet" href="styles.css">
     <style>
-        body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+        /* Styling (unchanged from previous code) */
+        /* Add additional styling for new buttons if needed */
+        /* General Reset */
+* {
     margin: 0;
-    padding: 20px;
-}
-
-.container {
-    max-width: 600px;
-    margin: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-    text-align: center;
-    color: #333;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-input[type="text"],
-input[type="date"],
-input[type="number"],
-textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 0;
     box-sizing: border-box;
+    font-family: Arial, sans-serif;
 }
+    /* Container styling */
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
 
-textarea {
-    resize: vertical;
-}
+    /* Form heading */
+    h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+    }
 
-.error {
-    color: red;
-    font-size: 0.9em;
-}
+    /* Form group styling */
+    .form-group {
+        margin-bottom: 15px;
+    }
 
-.status {
-    margin: 10px 0;
-    padding: 10px;
-    border-radius: 4px;
-}
+    label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #555;
+    }
 
-.success {
-    background-color: #dff0d8;
-    color: #3c763d;
-}
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
 
-.error {
-    background-color: #f2dede;
-    color: #a94442;
-}
+    /* Button styling */
+    .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        color: #fff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        margin-top: 10px;
+    }
 
-.btn {
-    width: 100%;
-    padding: 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-}
+    .btn:hover {
+        background-color: #0056b3;
+    }
 
-.btn:hover {
-    background-color: #0056b3;
-}
+    /* Additional action buttons styling */
+    .actions {
+        margin-top: 20px;
+        text-align: center;
+    }
 
+    .actions .btn {
+        margin: 5px;
+    }
+
+    /* Success and error messages */
+    .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+
+    .success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    /* Styling for the delete button */
+    .btn.delete {
+        background-color: #dc3545;
+    }
+
+    .btn.delete:hover {
+        background-color: #c82333;
+    }
+
+    /* Back link */
+    .back-link {
+        display: block;
+        margin-top: 15px;
+        text-align: center;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        color: #0056b3;
+    }
+
+
+/* Link Styling */
 .back-link {
-    display: block;
+    display: inline-block;
+    margin-top: 1rem;
     text-align: center;
-    margin-top: 15px;
-    color: #007bff;
     text-decoration: none;
+    color: #007bff;
+    transition: color 0.3s;
 }
 
 .back-link:hover {
-    text-decoration: underline;
+    color: #0056b3;
 }
-
     </style>
 </head>
 <body>
@@ -187,12 +235,27 @@ textarea {
             </div>
 
             <div class="form-group">
-                <label for="course_id">Course ID</label>
-                <input type="number" id="course_id" name="course_id" required>
+                <label for="course_id">Course Name</label>
+                <select id="course_id" name="course_id" required>
+                    <option value="">Select Course</option>
+                    <?php foreach ($courses as $course): ?>
+                        <option value="<?php echo $course['id']; ?>"><?php echo $course['course_name']; ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <button type="submit" class="btn">Create Assignment</button>
         </form>
+
+        <!-- Additional Actions after Assignment Creation -->
+        <?php if ($statusMessage && strpos($statusMessage, 'success') !== false): ?>
+            <div class="actions">
+                <h3>What would you like to do next?</h3>
+                <a href="view_assignment.php?id=<?php echo $stmt->insert_id; ?>" class="btn">View Assignment</a>
+                <a href="edit_assignment.php?id=<?php echo $stmt->insert_id; ?>" class="btn">Edit Assignment</a>
+                <a href="delete_assignment.php?id=<?php echo $stmt->insert_id; ?>" class="btn delete">Delete Assignment</a>
+            </div>
+        <?php endif; ?>
 
         <a href="teacher_dashboard.php" class="back-link">Back to Dashboard</a>
     </div>
