@@ -148,7 +148,7 @@ header nav.container {
 .hero {
   position: relative;
   height: 100vh;
-  background: url('images/HeroSection.png') center/cover no-repeat;
+  background: url('assets/images/Bonnie.jpg') center/cover no-repeat;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -186,159 +186,6 @@ header nav.container {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-}
-/* Course Catalog Section */
-.course-catalog {
-  padding: 50px 20px;
-  text-align: center;
-  background-color: #f4f4f4; /* Light gray background for contrast */
-}
-
-.course-catalog h2 {
-  font-size: 28px;
-  margin-bottom: 20px;
-
-}
-
-.course-catalog p {
-  margin-bottom: 30px;
-  font-size: 16px;
-}
-
-/* Course Grid */
-.course-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px; /* Space between course cards */
-}
-
-.course-card {
-  background-color: white; /* Card background */
-  border: 1px solid #ccc; /* Light border for cards */
-  border-radius: 8px; /* Rounded corners */
-  padding: 15px;
-  max-width: 250px;
-  text-align: left;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Shadow effect */
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.course-card:hover {
-  transform: translateY(-5px); /* Lift effect on hover */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Deeper shadow on hover */
-}
-
-.course-card img {
-  width: 100%; /* Responsive image */
-  border-radius: 4px; /* Rounded corners for images */
-}
-
-.course-card h3 {
-  font-size: 20px;
-  
-  margin: 10px 0;
-}
-
-.course-card p {
-  font-size: 14px;
-  margin-bottom: 15px;
-}
-
-/* Link Styles */
-
-
-
-/* Link Styles (Buttons) */
-.course-card a {
-  display: inline-block;
-  background-color: #007bff; /* Button background color */
-  color: white; /* Button text color */
-  padding: 12px 20px; /* Padding for button */
-  border-radius: 5px; /* Rounded corners */
-  text-decoration: none; /* Remove underline */
-  font-weight: bold; /* Bold text */
-  margin-top: 20px; /* Space above button */
-  transition: background-color 0.3s, transform 0.3s; /* Smooth transitions */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Add shadow for depth */
-}
-
-
-.course-card a:hover {
-  background-color: goldenrod; /* Button color on hover */
-  transform: translateY(-2px); /* Lift effect on hover */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Deeper shadow on hover */
-}
-
-/* Course Detail Section */
-.course-detail {
-  padding: 40px 20px; /* Padding for the section */
-  background-color: white; /* White background for content area */
-  border-radius: 8px; /* Rounded corners */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-  margin: 20px; /* Margin around section */
-}
-
-.course-detail h2 {
-  color: #007bff; /* Main title color */
-  font-size: 28px; /* Font size for course title */
-  margin-bottom: 10px; /* Space below title */
-}
-
-.course-detail p {
-  margin-bottom: 15px; /* Space below paragraphs */
-}
-
-.course-detail h3 {
-  color: #333; /* Darker color for subtitles */
-  margin-top: 20px; /* Space above subtitles */
-}
-
-/* Course Syllabus List */
-.course-detail ul {
-  list-style-type: disc; /* Bullet points for list */
-  padding-left: 20px; /* Indent list */
-  margin-bottom: 20px; /* Space below list */
-}
-
-
-/* Enroll Section */
-.enroll {
-  padding: 40px 20px; /* Padding for the section */
-  background-color: white; /* White background for content area */
-  border-radius: 8px; /* Rounded corners */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-  margin: 20px; /* Margin around section */
-}
-
-.enroll h2 {
-  color: #007bff; /* Main title color */
-  font-size: 28px; /* Font size for title */
-  margin-bottom: 10px; /* Space below title */
-}
-
-.enroll p {
-  margin-bottom: 20px; /* Space below paragraphs */
-}
-
-/* Form Styles */
-.form-group {
-  margin-bottom: 20px; /* Space between form groups */
-}
-
-.form-group label {
-  display: block; /* Block display for labels */
-  margin-bottom: 5px; /* Space below label */
-  font-weight: bold; /* Bold font for labels */
-}
-
-.form-group input, .form-group select {
-  width: 100%; /* Full width for input fields */
-  padding: 10px; /* Padding for input fields */
-  border: 1px solid #ccc; /* Border color */
-  border-radius: 4px; /* Rounded corners */
-  box-sizing: border-box; /* Include padding in width */
-  font-size: 16px; /* Font size for input */
 }
 
 
@@ -631,14 +478,6 @@ header nav.container {
 }
 
 /* Testimonials Section with Images */
-.testimonials .testimonial {
-  background-color: #f1f1f1;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-  max-width: 400px;
-  position: relative;
-}
 
 .testimonials .testimonial img {
   width: 100px;
@@ -648,10 +487,7 @@ header nav.container {
   margin-bottom: 10px;
 }
 
-.testimonials .testimonial h4 {
-  font-size: 1.1rem;
-  font-weight: bold;
-}
+
 
 /* Footer */
 footer {
